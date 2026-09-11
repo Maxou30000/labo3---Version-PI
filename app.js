@@ -1,10 +1,27 @@
 var express = require('express');
+var gpio = require('./gpio');
 var app = express();
+
+var etats = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0
+};
 
 app.set('view engine', 'ejs');
 
-app.get('/', function (req, res, next) {
-    res.send('Hello world!');
+app.get('/', function (req, res) {
+    res.render('index', {
+        modules: [1, 2, 3, 4, 5, 6].map(function (numero) {
+            return {
+                numero: numero,
+                etat: etats[numero]
+            };
+        })
+    });
 });
 
 app.get('/contact', function (req, res) {
@@ -27,44 +44,59 @@ app.get('/contact', function (req, res) {
   `);
 });
 
+app.get('/reset', function (req, res) {
+    for (var i = 1; i <= 6; i++) {
+        etats[i] = 0;
+    }
+    gpio.reset();
+    res.redirect('/module');
+});
 
 app.get('/module', function (req, res) {
-    res.send(`
-    <h1>Modules</h1>
-    <br>
-    <a href="/module/1">Module 1</a><br>
-        <a href="/module/2">Module 2</a><br>
-        <a href="/module/3">Module 3</a><br>
-        <a href="/module/4">Module 4</a><br>
-        <a href="/module/5">Module 5</a><br>
-        <a href="/module/6">Module 6</a><br>
-    <a href="/">Retour à l'accueil</a>
-`);
+    res.render('index', {
+        modules: [1, 2, 3, 4, 5, 6].map(function (numero) {
+            return {
+                numero: numero,
+                etat: etats[numero]
+            };
+        })
+    });
 });
 
-// GÉNÉRÉ PAR COPILOT INTÉGRÉ
+// Généré par copilot intégré
 app.get('/module/:numero', function (req, res) {
     var numero = Number(req.params.numero);
-// GÉNÉRÉ PAR COPILOT INTÉGRÉ
 
     if (!Number.isInteger(numero) || numero < 1 || numero > 6) {
-        return res.send(`
-    <h1>Module Inconnu </h1>
-    <a href="/module">Retour aux modules</a>
-    <br>
-    <a href="/">Retour à l'accueil</a>
-`);
+        return res.send('<h1>Module inconnu</h1>');
     }
 
-// GÉNÉRÉ PAR COPILOT INTÉGRÉ
-    res.render('module', { numero: numero });
+    // Change 0 to 1, or 1 to 0
+    etats[numero] = etats[numero] === 0 ? 1 : 0;
+    gpio.setModuleState(numero, etats[numero]);
+
+    res.render('module', {
+        numero: numero,
+        etat: etats[numero]
+    });
 });
-// GÉNÉRÉ PAR COPILOT INTÉGRÉ
+//Fin de la section copilot intéré
 
 app.use(function (req, res) {
     res.writeHead(404);
     res.end("Erreur 404: Page introuvable!")
 });
 
-app.listen(8080);
+var server = app.listen(8080);
 console.log("Le serveur est lancé sur le port 8080");
+
+function shutdown() {
+    gpio.reset();
+    gpio.close();
+    server.close(function () {
+        process.exit(0);
+    });
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

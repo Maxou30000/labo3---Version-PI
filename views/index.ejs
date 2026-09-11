@@ -1,0 +1,24 @@
+<h1>Modules</h1>
+
+
+<% modules.forEach(function (module) { %>
+    <div>
+        <a href="/module/<%= module.numero %>">
+            Module <%= module.numero %> -
+            <% if (module.etat === 1) { %>
+                🟢
+            <% } else { %>
+                ⚫
+            <% } %>
+        </a>
+        <br>
+        <hr>
+    </div>
+
+
+<% }); %>
+
+
+<a href="/">Retour à l'accueil</a>
+<br>
+<a href="/reset">Réinitialiser les modules</a>
